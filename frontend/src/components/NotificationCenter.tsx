@@ -31,10 +31,18 @@ const NotificationCenter: React.FC = () => {
 
     // Establish WebSocket Connection
     const token = localStorage.getItem('access_token');
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    // Match development proxy or production domain
-    const host = window.location.host;
-    const wsUrl = `${protocol}://${host}/ws/notifications/?token=${token}&tenant_id=${activeOrg.id}`;
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://invoice-management-system-p8uf.onrender.com/api/v1';
+    
+    let wsUrl = '';
+    try {
+      const urlObj = new URL(apiBaseUrl);
+      const wsProtocol = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${wsProtocol}//${urlObj.host}/ws/notifications/?token=${token}&tenant_id=${activeOrg.id}`;
+    } catch (e) {
+      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const host = window.location.host;
+      wsUrl = `${protocol}://${host}/ws/notifications/?token=${token}&tenant_id=${activeOrg.id}`;
+    }
     
     const socket = new WebSocket(wsUrl);
     wsRef.current = socket;
