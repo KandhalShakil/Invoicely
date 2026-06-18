@@ -77,12 +77,6 @@ const Invoices: React.FC = () => {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Auto-set AI target customer when customers load
-  useEffect(() => {
-    if (customers.length > 0 && !aiTargetCustomer) {
-      setAiTargetCustomer(customers[0].id);
-    }
-  }, [customers]);
 
   // Reset the invoice builder form to pristine state
   const resetForm = () => {
