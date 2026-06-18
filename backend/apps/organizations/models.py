@@ -16,6 +16,11 @@ class Organization(BaseModel):
     logo_url = models.URLField(max_length=500, blank=True, null=True)
     billing_address = models.JSONField(default=dict, blank=True)
     
+    # Payment Configuration
+    payment_upi_id = models.CharField(max_length=100, blank=True, null=True, help_text="Configured UPI ID for receiving payments.")
+    payment_merchant_name = models.CharField(max_length=255, blank=True, null=True, help_text="Extracted or configured merchant name for the UPI QR.")
+    payment_qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True, help_text="Auto-generated clean QR Code based on the UPI ID.")
+    
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

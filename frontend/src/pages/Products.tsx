@@ -195,13 +195,14 @@ const Products: React.FC = () => {
           const optimisticResult = fetchResult?.results ? { ...fetchResult, results: optimisticProducts } : optimisticProducts;
 
           await boundMutate(
-            api.delete(`/products/${id}/`).then(() => fetcher(cacheKey as string)),
+            api.delete(`/products/${id}/`).then(() => optimisticResult),
             { optimisticData: optimisticResult, rollbackOnError: true, populateCache: true, revalidate: false }
           );
           showToast('Catalog item deleted successfully!', 'success');
         } catch (e: any) {
           const msg = e.response?.data?.error || e.response?.data?.detail || "Failed to delete product. It may be referenced in line items.";
           showToast(msg, 'error');
+          throw e;
         } finally {
           setIsSubmitting(false);
         }
@@ -305,7 +306,7 @@ const Products: React.FC = () => {
                       ₹ {prod.price.toLocaleString()}
                     </td>
                     <td className="p-4 text-slate-400">{prod.tax_rate}%</td>
-                    <td className="p-4 text-slate-400">{prod.hsn_sac_code || 'N/A'}</td>
+                    <td className="p-4 text-slate-400">{prod.hsn_sac_code || '-'}</td>
                     <td className="p-4">
                       {prod.type === 'product' ? (
                         <span className={`font-semibold ${prod.inventory_count <= 5 ? 'text-amber-400' : 'text-slate-400'}`}>
@@ -372,20 +373,15 @@ const Products: React.FC = () => {
                 </div>
                 <div>
                   <label className="text-slate-400 font-bold block mb-1">SKU / Unique Identifier</label>
-                  {editId ? (
-                    <input
-                      type="text"
-                      id="prod_sku"
-                      value={sku}
-                      readOnly
-                      disabled
-                      className="w-full bg-[#111827] border border-slate-800 text-slate-500 py-2 px-3 rounded-lg focus:outline-none cursor-not-allowed"
-                    />
-                  ) : (
-                    <div className="w-full bg-[#111827]/50 border border-slate-800 border-dashed text-slate-500 py-2 px-3 rounded-lg text-[11px] flex items-center justify-center">
-                      SKU will be generated automatically
-                    </div>
-                  )}
+                  <input
+                    type="text"
+                    id="prod_sku"
+                    value={editId ? sku : ''}
+                    placeholder="Auto-generated"
+                    readOnly
+                    disabled
+                    className="w-full bg-[#111827] border border-slate-800 text-slate-500 py-2 px-3 rounded-lg focus:outline-none cursor-not-allowed"
+                  />
                 </div>
               </div>
 
@@ -462,10 +458,11 @@ const Products: React.FC = () => {
                   <input
                     type="text"
                     id="prod_hsn_sac_code"
-                    value={hsnSacCode}
-                    onChange={(e) => setHsnSacCode(e.target.value)}
-                    className="w-full bg-[#111827] border border-slate-800 text-slate-200 py-2 px-3 rounded-lg focus:outline-none focus:border-emerald-500"
-                    placeholder="998311"
+                    value={hsnSacCode || ''}
+                    placeholder="Auto-generated"
+                    readOnly
+                    disabled
+                    className="w-full bg-[#111827] border border-slate-800 text-slate-500 py-2 px-3 rounded-lg focus:outline-none cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -496,7 +493,7 @@ const Products: React.FC = () => {
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => { setIsOpen(false); resetForm(); }}
                   disabled={isSubmitting}
                   className="bg-transparent border border-slate-800 hover:bg-slate-800/40 text-slate-300 font-semibold py-2 px-4 rounded-xl disabled:opacity-50"
                 >

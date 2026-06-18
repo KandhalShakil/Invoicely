@@ -148,11 +148,12 @@ class InvoiceViewSet(ValidationMixin, viewsets.ModelViewSet):
         
         # In a fully-featured accounting engine, we track billing accounts, 
         # but here we simply mark invoice status based on amount comparison
-        if amount >= invoice.total_amount:
+        invoice.amount_paid += amount
+        if invoice.amount_paid >= invoice.total_amount:
             invoice.status = 'paid'
         else:
             invoice.status = 'partially_paid'
-        invoice.save(update_fields=['status'])
+        invoice.save(update_fields=['status', 'amount_paid'])
         
         self.log_workflow(invoice, 'record_payment', old_status, invoice.status, f"Payment of {invoice.currency} {amount} recorded.")
         return Response(InvoiceSerializer(invoice).data)

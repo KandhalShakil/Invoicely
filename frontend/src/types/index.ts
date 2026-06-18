@@ -14,8 +14,11 @@ export interface Organization {
   email: string;
   phone: string;
   currency: string;
-  logo_url: string;
-  billing_address: Record<string, string>;
+  logo_url?: string;
+  billing_address?: any;
+  payment_upi_id?: string | null;
+  payment_merchant_name?: string | null;
+  payment_qr_code?: string | null;
   created_at: string;
 }
 
@@ -102,6 +105,7 @@ export interface Invoice {
   tax_amount: number;
   discount_amount: number;
   total_amount: number;
+  amount_paid?: number;
   currency: string;
   terms?: string;
   notes?: string;

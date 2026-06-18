@@ -245,13 +245,14 @@ const Customers: React.FC = () => {
           const optimisticResult = fetchResult?.results ? { ...fetchResult, count: Math.max(0, totalCount - 1), results: optimisticCustomers } : optimisticCustomers;
           
           await boundMutate(
-            api.delete(`/customers/${id}/`).then(() => fetcher(cacheKey as string)),
+            api.delete(`/customers/${id}/`).then(() => optimisticResult),
             { optimisticData: optimisticResult, rollbackOnError: true, populateCache: true, revalidate: false }
           );
           showToast('Customer deleted successfully!', 'success');
         } catch (e: any) {
           const msg = e.response?.data?.error || e.response?.data?.detail || "Failed to delete customer. They may have active invoices.";
           showToast(msg, 'error');
+          throw e;
         } finally {
           setIsSubmitting(false);
         }
@@ -625,7 +626,7 @@ const Customers: React.FC = () => {
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => { setIsOpen(false); resetForm(); }}
                   disabled={isSubmitting}
                   className="bg-transparent border border-slate-800 hover:bg-slate-800/40 text-slate-300 font-semibold py-2 px-4 rounded-xl disabled:opacity-50"
                 >

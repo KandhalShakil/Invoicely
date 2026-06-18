@@ -198,80 +198,23 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
 }
 
-# WebSockets, Caching, and Celery Broker Settings (Dynamic Redis check and fallback)
-REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+# WebSockets, Caching, and Celery Broker Settings
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
-import socket
-from urllib.parse import urlparse
-parsed_redis = urlparse(REDIS_URL)
-redis_host = parsed_redis.hostname or 'localhost'
-redis_port = parsed_redis.port or 6379
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'invoice-locmem-fallback',
+    }
+}
 
-redis_available = False
-try:
-    # Quick socket connect check to see if Redis is running locally or remotely
-    s = socket.create_connection((redis_host, redis_port), timeout=1)
-    s.close()
-    redis_available = True
-except (socket.timeout, ConnectionRefusedError, OSError):
-    pass
-
-if redis_available:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [{
-                    'address': REDIS_URL,
-                    'ssl_cert_reqs': None,
-                    'health_check_interval': 20,
-                    'socket_keepalive': True,
-                    'retry_on_timeout': True,
-                }],
-            },
-        },
-    }
-    
-    CACHES = {
-        'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': REDIS_URL,
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            },
-            'KEY_PREFIX': 'invoiceapp',
-        }
-    }
-    
-    celery_url = REDIS_URL
-    if celery_url.startswith('rediss://') and 'ssl_cert_reqs' not in celery_url:
-        separator = '&' if '?' in celery_url else '?'
-        celery_url += f"{separator}ssl_cert_reqs=CERT_NONE"
-        
-    CELERY_BROKER_URL = celery_url
-    CELERY_RESULT_BACKEND = celery_url
-else:
-    # Dynamic fallback to local memory caching & in-memory channels when Redis is absent
-    import logging
-    logger = logging.getLogger('django')
-    logger.warning("⚠️ Redis service is not detected on %s:%s. Falling back to LocMemCache, InMemoryChannelLayer, and Celery Eager execution.", redis_host, redis_port)
-    
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
-    
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'invoice-locmem-fallback',
-        }
-    }
-    
-    CELERY_TASK_ALWAYS_EAGER = True
-    CELERY_BROKER_URL = 'memory://'
-    CELERY_RESULT_BACKEND = 'cache+memory://'
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_BROKER_URL = 'memory://'
+CELERY_RESULT_BACKEND = 'cache+memory://'
 
 # General Celery Task Serialization Config
 CELERY_ACCEPT_CONTENT = ['json']
@@ -412,3 +355,9 @@ AUTHENTICATION_BACKENDS = [
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv('FILE_UPLOAD_MAX_MEMORY_SIZE', str(10 * 1024 * 1024)))  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv('FILE_UPLOAD_MAX_MEMORY_SIZE', str(10 * 1024 * 1024)))  # 10MB
 DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.getenv('DATA_UPLOAD_MAX_NUMBER_FIELDS', '1000'))
+
+# =============================================================================
+# Application URLs
+# =============================================================================
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')

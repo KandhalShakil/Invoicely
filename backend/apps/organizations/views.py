@@ -6,6 +6,7 @@ from .serializers import (
     OrganizationSerializer, UserOrganizationMembershipSerializer, AddMemberSerializer
 )
 from .permissions import HasRolePermission
+from .utils import is_valid_upi, extract_upi_details_from_string, decode_qr_image, generate_upi_qr
 
 class OrganizationViewSet(viewsets.ModelViewSet):
     serializer_class = OrganizationSerializer
@@ -199,3 +200,71 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             
         return Response({'message': f'User successfully {action_type}d.'}, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'], url_path='payment-setup/upi')
+    def setup_payment_upi(self, request, pk=None):
+        org = self.get_object()
+        upi_id = request.data.get('upi_id')
+        merchant_name = request.data.get('merchant_name') or org.name
+        
+        if not is_valid_upi(upi_id):
+            return Response({'error': 'Invalid UPI ID format.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            # Generate clean QR code
+            qr_file = generate_upi_qr(upi_id, merchant_name)
+            
+            org.payment_upi_id = upi_id
+            org.payment_merchant_name = merchant_name
+            # If an old QR code exists, replace it
+            if org.payment_qr_code:
+                org.payment_qr_code.delete(save=False)
+            org.payment_qr_code.save(qr_file.name, qr_file, save=True)
+            
+            return Response({
+                'message': 'Payment UPI configured successfully.',
+                'payment_upi_id': org.payment_upi_id,
+                'payment_merchant_name': org.payment_merchant_name,
+                'payment_qr_code': org.payment_qr_code.url
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], url_path='payment-setup/qr')
+    def setup_payment_qr(self, request, pk=None):
+        org = self.get_object()
+        qr_image = request.FILES.get('qr_image')
+        
+        if not qr_image:
+            return Response({'error': 'No QR image provided.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Decode the image
+        decoded_string = decode_qr_image(qr_image)
+        if not decoded_string:
+            return Response({'error': 'Could not decode QR code. Please upload a clear image of a valid UPI QR.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Extract details
+        details = extract_upi_details_from_string(decoded_string)
+        if not details:
+            return Response({'error': 'The uploaded QR code is not a standard UPI payment QR.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        upi_id = details['upi_id']
+        merchant_name = details['merchant_name'] or org.name
+        
+        try:
+            # Generate fresh QR code from extracted details
+            qr_file = generate_upi_qr(upi_id, merchant_name)
+            
+            org.payment_upi_id = upi_id
+            org.payment_merchant_name = merchant_name
+            if org.payment_qr_code:
+                org.payment_qr_code.delete(save=False)
+            org.payment_qr_code.save(qr_file.name, qr_file, save=True)
+            
+            return Response({
+                'message': 'QR Code processed and UPI configured successfully.',
+                'extracted_upi': upi_id,
+                'extracted_merchant': merchant_name,
+                'payment_qr_code': org.payment_qr_code.url
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -263,49 +263,8 @@ def product_saved(sender, instance, created, **kwargs):
             message=f"Product '{instance.name}' price updated to ₹ {instance.price}.",
             exclude_user=getattr(instance, 'updated_by', None)
         )
-        
-        # Email Product Price Updated Notice to admin
-        if admin_email:
-            send_transactional_email_task.delay(
-                recipient=admin_email,
-                subject=f"Catalog Pricing Updated: {instance.name}",
-                template_name="product_price_updated",
-                context_data={
-                    "org_name": instance.organization.name,
-                    "name": instance.name,
-                    "price": f"{instance.price:.2f}",
-                    "sku": instance.sku or "N/A"
-                },
-                organization_id=str(instance.organization_id)
-            )
-            
-    # Check inventory stock counts for low/out-of-stock triggers
-    if instance.type == 'product' and admin_email:
-        if instance.inventory_count <= 0:
-            send_transactional_email_task.delay(
-                recipient=admin_email,
-                subject=f"Out of Stock Warning: {instance.name}",
-                template_name="product_out_of_stock",
-                context_data={
-                    "org_name": instance.organization.name,
-                    "name": instance.name,
-                    "sku": instance.sku or "N/A"
-                },
-                organization_id=str(instance.organization_id)
-            )
-        elif instance.inventory_count <= 5:
-            send_transactional_email_task.delay(
-                recipient=admin_email,
-                subject=f"Low Stock Warning: {instance.name}",
-                template_name="product_low_stock",
-                context_data={
-                    "org_name": instance.organization.name,
-                    "name": instance.name,
-                    "inventory_count": instance.inventory_count,
-                    "sku": instance.sku or "N/A"
-                },
-                organization_id=str(instance.organization_id)
-            )
+
+    # Low stock digest will be handled by a daily celery task instead of real-time spam
 
 @receiver(post_delete, sender=Product)
 def product_deleted(sender, instance, **kwargs):

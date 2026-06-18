@@ -11,7 +11,6 @@
   <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
   <img src="https://img.shields.io/badge/Redis-Active-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
   <img src="https://img.shields.io/badge/Celery-5.3.6-37814A?style=for-the-badge&logo=celery&logoColor=white" alt="Celery" />
-  <img src="https://img.shields.io/badge/Docker-Coordinated-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
   <img src="https://img.shields.io/badge/Build-Passing-10b981?style=for-the-badge&logo=github-actions&logoColor=white" alt="Build" />
 </p>
 
@@ -335,11 +334,11 @@ Follow these steps to set up the project locally.
    python manage.py migrate
    ```
 
-5. **Seed Test Database Records:**
+5. **Create Admin Superuser:**
    ```bash
-   python seed_data.py
+   python manage.py createsuperuser
    ```
-   *Creates an admin user: `admin@invoicemanager.com` with password `AdminPassword123!`.*
+   *Follow the prompts to create your administrative login credentials.*
 
 6. **Start the Development Server:**
    ```bash
@@ -374,11 +373,7 @@ Follow these steps to set up the project locally.
 
 ---
 
-### Docker setup (Orchestration)
-To build and start the entire stack (Postgres, Redis, Celery, Daphne, Vite build, Nginx proxy):
-```bash
-docker-compose up --build -d
-```
+
 
 <p align="center">
   <img src="assets/separator.svg" alt="Separator" width="1100" />
@@ -506,8 +501,6 @@ backend/
 │   └── products/       # Price catalogs & stock SKU logs
 ├── config/             # Django settings.py & project routes
 ├── tests/              # Pytest integration tests
-├── Dockerfile          # Production backend daphne script
-└── docker-compose.yml  # Multi-container local orchestration
 ```
 
 ### Frontend Structure

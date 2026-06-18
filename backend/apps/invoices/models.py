@@ -33,6 +33,7 @@ class Invoice(TenantModel):
     tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     
     currency = models.CharField(max_length=10, default='INR')
     terms = models.TextField(blank=True, null=True)

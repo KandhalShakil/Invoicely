@@ -73,3 +73,17 @@
 .text-gradient-purple {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-500;
 }
+
+/* Dark theme native number input steppers */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  filter: invert(0.8) hue-rotate(180deg) brightness(0.8);
+  opacity: 0.7;
+  cursor: pointer;
+  height: auto;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover,
+input[type="number"]::-webkit-outer-spin-button:hover {
+  opacity: 1;
+}

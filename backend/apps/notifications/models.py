@@ -109,3 +109,17 @@ class ReminderSchedule(TenantModel):
 
     def __str__(self):
         return f"{self.organization.name} - Upcoming: -{self.days_before_due}d, Overdue: every {self.overdue_interval_days}d"
+
+class EmailAlertLog(TenantModel):
+    """
+    Tracks low stock alerts to prevent spamming multiple times for the same product on the same day.
+    """
+    alert_type = models.CharField(max_length=50, db_index=True)
+    target_id = models.UUIDField(db_index=True)
+    created_date = models.DateField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        unique_together = ('organization', 'alert_type', 'target_id', 'created_date')
+
+    def __str__(self):
+        return f"{self.organization.name} - {self.alert_type} for {self.target_id} on {self.created_date}"

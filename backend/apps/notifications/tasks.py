@@ -334,3 +334,87 @@ def run_periodic_business_summaries(period):
             
     logger.info(f"Finished run_periodic_business_summaries task. Sent {sent_emails} summary emails.")
     return sent_emails
+
+@shared_task
+def send_daily_low_stock_digest():
+    """
+    Scan all physical products and send a consolidated email to organization admins for any low or out-of-stock items.
+    Tracks sent emails in EmailAlertLog to avoid duplicates on the same day.
+    """
+    from apps.products.models import Product
+    from apps.notifications.models import EmailAlertLog
+    
+    logger.info("Starting send_daily_low_stock_digest task")
+    today = timezone.now().date()
+    
+    orgs = Organization.objects.all()
+    emails_sent = 0
+    
+    for org in orgs:
+        # Check if they have an admin email
+        if not org.email:
+            continue
+            
+        low_stock_products = Product.objects.global_all().filter(
+            organization=org,
+            type='product',
+            inventory_count__lte=5
+        ).order_by('inventory_count')
+        
+        if not low_stock_products.exists():
+            continue
+            
+        # Filter products that haven't triggered an alert today
+        products_to_alert = []
+        for p in low_stock_products:
+            alert_type = 'out_of_stock' if p.inventory_count <= 0 else 'low_stock'
+            if not EmailAlertLog.objects.filter(
+                organization=org,
+                alert_type=alert_type,
+                target_id=p.id,
+                created_date=today
+            ).exists():
+                products_to_alert.append((p, alert_type))
+                
+        if not products_to_alert:
+            continue
+            
+        context_items = []
+        logs_to_create = []
+        
+        for p, alert_type in products_to_alert:
+            context_items.append({
+                'name': p.name,
+                'sku': p.sku or 'N/A',
+                'inventory_count': p.inventory_count,
+                'status': 'Out of Stock' if p.inventory_count <= 0 else 'Low Stock'
+            })
+            logs_to_create.append(EmailAlertLog(
+                organization=org,
+                alert_type=alert_type,
+                target_id=p.id,
+                created_date=today
+            ))
+            
+        # Send one digest email per organization
+        context = {
+            'org_name': org.name,
+            'items': context_items,
+            'dashboard_url': f"{settings.FRONTEND_URL}/products"
+        }
+        
+        send_transactional_email_task.delay(
+            recipient=org.email,
+            subject=f"Daily Inventory Alert - {org.name}",
+            template_name='daily_low_stock_digest',
+            context_data=context,
+            organization_id=str(org.id)
+        )
+        emails_sent += 1
+        
+        # Record logs so we don't spam again today
+        EmailAlertLog.objects.bulk_create(logs_to_create)
+        
+    logger.info(f"Finished send_daily_low_stock_digest. Sent digests to {emails_sent} organizations.")
+    return emails_sent
+

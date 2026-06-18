@@ -8,8 +8,8 @@ User = get_user_model()
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
-        fields = ('id', 'name', 'tax_number', 'email', 'phone', 'currency', 'logo_url', 'billing_address', 'created_at')
-        read_only_fields = ('id', 'created_at')
+        fields = ('id', 'name', 'tax_number', 'email', 'phone', 'currency', 'logo_url', 'billing_address', 'payment_upi_id', 'payment_merchant_name', 'payment_qr_code', 'created_at')
+        read_only_fields = ('id', 'created_at', 'payment_qr_code')
 
     def validate_name(self, value):
         if not value or not value.strip():

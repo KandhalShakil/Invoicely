@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from apps.core.fast_crud import fast_crud_router
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -16,6 +17,7 @@ urlpatterns = [
     path('api/v1/notifications/', include('apps.notifications.urls')),
     path('api/v1/audit-logs/', include('apps.audit_logs.urls')),
     path('api/v1/ai/', include('apps.ai.urls')),
+    path('api/v1/crud/', include(fast_crud_router.urls)),
     
     # API Schema and Documentation
     path('api/v1/schema/', SpectacularAPIView.as_view(), name='schema'),

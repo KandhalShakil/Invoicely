@@ -227,17 +227,32 @@ class PDFInvoiceGenerator:
         story.append(Spacer(1, 15))
         
         # 4. Total and Payments Summary + UPI QR Code
-        # Generate dynamic QR Code (link to payment portal or UPI)
-        qr_payload = f"upi://pay?pa=billing@{org_name.lower().replace(' ', '')}.com&pn={org_name}&am={invoice.total_amount}&cu={invoice.currency}&tn={invoice.invoice_number}"
-        qr = qrcode.QRCode(version=1, box_size=3, border=1)
-        qr.add_data(qr_payload)
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color="black", back_color="white")
-        
-        qr_buffer = io.BytesIO()
-        qr_img.save(qr_buffer, format="PNG")
-        qr_buffer.seek(0)
-        qr_pdf_image = Image(qr_buffer, width=1.0*inch, height=1.0*inch)
+        qr_pdf_image = None
+        if company_org.payment_upi_id:
+            try:
+                merchant_name = company_org.payment_merchant_name or org_name
+                # Dynamic QR with exact amount and invoice number
+                qr_payload = f"upi://pay?pa={company_org.payment_upi_id}&pn={merchant_name.replace(' ', '%20')}&am={invoice.total_amount}&cu={invoice.currency}&tn={invoice.invoice_number}"
+                qr = qrcode.QRCode(version=1, box_size=3, border=1)
+                qr.add_data(qr_payload)
+                qr.make(fit=True)
+                qr_img = qr.make_image(fill_color="black", back_color="white")
+                
+                qr_buffer = io.BytesIO()
+                qr_img.save(qr_buffer, format="PNG")
+                qr_buffer.seek(0)
+                
+                # Combine Image and UPI text vertically
+                qr_pdf_image = Table([
+                    [Paragraph("<b>SCAN TO PAY</b>", ParagraphStyle('ScanHeader', parent=meta_label_style, alignment=1, textColor=accent_color))],
+                    [Image(qr_buffer, width=1.1*inch, height=1.1*inch)],
+                    [Paragraph(f"UPI: {company_org.payment_upi_id}", ParagraphStyle('UpiText', parent=normal_style, alignment=1, fontSize=8, textColor=secondary_color))]
+                ], colWidths=[1.5*inch], style=[('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')])
+            except Exception as e:
+                logger.error(f"Failed to render QR for PDF: {e}")
+                qr_pdf_image = Paragraph("", normal_style)
+        else:
+            qr_pdf_image = Paragraph("", normal_style)
 
         totals_data = [
             [

@@ -28,7 +28,7 @@ class Product(TenantModel):
         blank=True,
         related_name='products'
     )
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, db_index=True)
     sku = models.CharField(max_length=100, db_index=True, help_text="Stock keeping unit or unique identifier")
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -78,4 +78,11 @@ class Product(TenantModel):
                     
                 self.sku = f"{prefix}-{counter:05d}"
                 
+        if not self.hsn_sac_code:
+            import random
+            if self.type == 'product':
+                self.hsn_sac_code = str(random.randint(100000, 999999))
+            else:
+                self.hsn_sac_code = f"99{random.randint(1000, 9999)}"
+
         super().save(*args, **kwargs)

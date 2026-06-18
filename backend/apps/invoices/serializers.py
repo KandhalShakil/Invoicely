@@ -67,7 +67,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'organization', 'customer', 'customer_detail', 'invoice_number', 'status', 
             'issue_date', 'due_date', 'subtotal', 'tax_amount', 'discount_amount', 
-            'total_amount', 'currency', 'terms', 'notes', 'pdf_url', 'line_items', 
+            'total_amount', 'amount_paid', 'currency', 'terms', 'notes', 'pdf_url', 'line_items', 
             'workflow_history', 'created_at', 'updated_at'
         )
         read_only_fields = ('id', 'organization', 'invoice_number', 'subtotal', 'tax_amount', 'total_amount', 'pdf_url', 'created_at', 'updated_at')

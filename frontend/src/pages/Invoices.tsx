@@ -9,9 +9,10 @@ import {
 } from 'lucide-react';
 import { Invoice, Customer, Product, InvoiceLineItem } from '../types';
 import DatePicker from '../components/DatePicker';
+import PaymentSetupModal from '../components/PaymentSetupModal';
 
 const Invoices: React.FC = () => {
-  const { activeOrg } = useAuth();
+  const { activeOrg, organizations } = useAuth();
   
   // Tab controller
   const [activeTab, setActiveTab] = useState<'list' | 'new' | 'ocr' | 'ai'>('list');
@@ -21,6 +22,9 @@ const Invoices: React.FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  
+  const currentOrg = activeOrg;
+  const [showPaymentSetup, setShowPaymentSetup] = useState(false);
   
   const invoiceCacheKey = activeOrg ? `/invoices/?page=${page}&search=${debouncedSearch}&status=${statusFilter}` : null;
   const { data: invoicesData, error: invoicesError, mutate: mutateInvoices } = useSWR(invoiceCacheKey, fetcher);
@@ -188,6 +192,12 @@ const Invoices: React.FC = () => {
     e.preventDefault();
     setFormError('');
     setFormErrors({});
+    
+    // Mandatory Payment Setup Pre-flight Check
+    if (currentOrg && !currentOrg.payment_upi_id && !currentOrg.payment_qr_code) {
+      setShowPaymentSetup(true);
+      return;
+    }
     
     // Client-side validation
     const errors: Record<string, string> = {};
@@ -518,22 +528,7 @@ const Invoices: React.FC = () => {
           >
             Invoice Builder
           </button>
-          <button
-            onClick={() => setActiveTab('ocr')}
-            className={`py-1.5 px-3 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
-              activeTab === 'ocr' ? 'bg-slate-800 text-slate-100' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Upload className="w-3.5 h-3.5" /> OCR Extractor
-          </button>
-          <button
-            onClick={() => setActiveTab('ai')}
-            className={`py-1.5 px-3 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
-              activeTab === 'ai' ? 'bg-slate-800 text-slate-100' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> AI Prompt Builder
-          </button>
+
         </div>
       </div>
 
@@ -934,93 +929,7 @@ const Invoices: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'ocr' && (
-        /* OCR drag/drop File Uploader tab */
-        <div className="glass p-8 rounded-2xl border border-slate-800/80 text-center max-w-xl mx-auto">
-          <h3 className="font-bold text-base font-display text-slate-200 mb-2">Invoice OCR Scanning</h3>
-          <p className="text-xs text-slate-500 mb-6">Upload physical invoice receipts to extract line items automatically</p>
 
-          <form onSubmit={handleOCRSubmit} className="space-y-6">
-            <div className="border-2 border-dashed border-slate-800 hover:border-emerald-500/40 rounded-2xl p-8 transition-colors bg-slate-900/10 cursor-pointer relative">
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                required
-                onChange={(e) => setOcrFile(e.target.files?.[0] || null)}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-              <Upload className="w-10 h-10 text-slate-500 mx-auto mb-3" />
-              <p className="text-xs font-semibold text-slate-300">
-                {ocrFile ? ocrFile.name : 'Drag & drop image or PDF invoice here'}
-              </p>
-              <p className="text-[10px] text-slate-600 mt-1">Supports PNG, JPG, or PDF up to 10MB</p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={ocrLoading || !ocrFile}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-all glow-emerald disabled:opacity-50 text-xs"
-            >
-              {ocrLoading ? 'Scanning Layout Coordinates...' : 'Run OCR Scanner'}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {activeTab === 'ai' && (
-        /* AI Natural Prompt Smart Draft Builder tab */
-        <div className="glass p-6 rounded-2xl border border-slate-800/80 max-w-xl mx-auto">
-          <h3 className="font-bold text-base font-display text-slate-200 mb-2">AI Smart Invoice Draft</h3>
-          <p className="text-xs text-slate-500 mb-6">Enter details in plain text and let AI outline the line items and tax splits</p>
-
-          <form onSubmit={handleAISmartDraft} className="space-y-4 text-xs">
-            <div>
-              <label className="text-slate-400 font-bold block mb-1">Target Client</label>
-              <select
-                value={aiTargetCustomer}
-                onChange={(e) => setAiTargetCustomer(e.target.value)}
-                className="w-full bg-[#111827] border border-slate-800 text-slate-200 py-2.5 px-3 rounded-lg focus:outline-none"
-              >
-                {customers.length === 0 ? (
-                  <option value="" disabled>No customers found</option>
-                ) : (
-                  customers.map((c) => {
-                    const cAny = c as any;
-                    const name = c.contact_name || cAny.name || cAny.customer_name || cAny.full_name || c.email || "Unnamed Customer";
-                    const phone = c.phone ? ` (${c.phone})` : "";
-                    return (
-                      <option key={c.id} value={c.id}>
-                        {`${name}${phone}`}
-                      </option>
-                    );
-                  })
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-slate-400 font-bold block mb-1">Text Prompt Description</label>
-              <textarea
-                required
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                rows={4}
-                className="w-full bg-[#111827] border border-slate-800 text-slate-200 py-2 px-3 rounded-lg focus:outline-none focus:border-emerald-500 font-sans"
-                placeholder="Consulting and website migration setup ₹75,000 with 10% discount and standard 18% GST..."
-              />
-              <span className="text-[10px] text-slate-600 block mt-1">AI parses hourly rates, quantities, currency symbols, and tax descriptions.</span>
-            </div>
-
-            <button
-              type="submit"
-              disabled={aiLoading}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-all glow-emerald disabled:opacity-50 text-xs mt-6"
-            >
-              {aiLoading ? 'Compiling structures...' : 'Generate Invoice Draft'}
-            </button>
-          </form>
-        </div>
-      )}
 
       {/* Drawer Details Panel for Selected Invoice */}
       {selectedInvoice && (
@@ -1117,6 +1026,37 @@ const Invoices: React.FC = () => {
             </div>
           </div>
 
+          {/* Payment Settings / Scan to Pay Widget */}
+          {currentOrg && (currentOrg.payment_upi_id || currentOrg.payment_qr_code) && selectedInvoice.status !== 'draft' && selectedInvoice.status !== 'paid' && (
+            <div className="mt-6 bg-[#0f1423] border border-slate-700/60 p-4 rounded-xl flex flex-col items-center">
+              <h6 className="font-bold text-slate-300 text-[11px] uppercase tracking-wider mb-3 w-full text-center">Scan To Pay</h6>
+              
+              {currentOrg.payment_qr_code ? (
+                <img src={`http://localhost:8000${currentOrg.payment_qr_code}`} alt="Payment QR" className="w-32 h-32 rounded-lg bg-white p-2 border border-slate-700 mb-3 shadow-[0_0_15px_rgba(16,185,129,0.1)]" />
+              ) : (
+                <div className="w-32 h-32 rounded-lg bg-[#161f30] flex items-center justify-center mb-3 border border-slate-700">
+                  <span className="text-xs text-slate-500">QR Pending</span>
+                </div>
+              )}
+              
+              <div className="bg-[#1e293b] px-3 py-2 rounded flex items-center gap-2 border border-slate-700 w-full justify-between">
+                <span className="text-xs text-slate-400 font-mono truncate">
+                  {currentOrg.payment_upi_id}
+                </span>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(currentOrg.payment_upi_id || '');
+                    showToast('UPI ID copied to clipboard', 'success');
+                  }}
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors shrink-0"
+                  title="Copy UPI ID"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Workflow Transitions Buttons */}
           <div className="border-t border-slate-800/80 pt-4 mt-6 space-y-4">
             {/* Workflow error display */}
@@ -1211,6 +1151,16 @@ const Invoices: React.FC = () => {
           {toast.message}
         </div>
       )}
+      {/* Modals */}
+      <PaymentSetupModal
+        isOpen={showPaymentSetup}
+        onClose={() => setShowPaymentSetup(false)}
+        onSuccess={(updatedOrg) => {
+          // Trigger SWR revalidation or reload window to pick up new org context
+          window.location.reload();
+        }}
+        preventClose={true} // Forces them to complete it!
+      />
     </div>
   );
 };
