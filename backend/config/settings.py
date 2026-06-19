@@ -17,7 +17,10 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', _default_secret)
 if not SECRET_KEY:
     raise RuntimeError('DJANGO_SECRET_KEY environment variable is not set. Refusing to start in production mode.')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1' if DEBUG else '').split(',')
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,.onrender.com"
+).split(",")
 
 # Application definition
 INSTALLED_APPS = [
