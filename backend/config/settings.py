@@ -363,4 +363,5 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.getenv('DATA_UPLOAD_MAX_NUMBER_FIELDS', '
 # Application URLs
 # =============================================================================
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
+BACKEND_URL = os.getenv('BACKEND_URL', 'invoice-management-system-nhs5.onrender.com')
+print("ALLOWED_HOSTS =", ALLOWED_HOSTS)
