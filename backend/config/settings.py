@@ -19,7 +19,7 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = os.getenv(
     "ALLOWED_HOSTS",
-    "localhost,127.0.0.1,.onrender.com"
+    "localhost,127.0.0.1,invoice-management-system-nhs5.onrender.com"
 ).split(",")
 
 # Application definition
