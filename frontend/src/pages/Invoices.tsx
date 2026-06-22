@@ -925,7 +925,7 @@ const Invoices: React.FC = () => {
               <h6 className="font-bold text-slate-300 text-[11px] uppercase tracking-wider mb-3 w-full text-center">Scan To Pay</h6>
               
               {currentOrg.payment_qr_code ? (
-                <img src={`import.meta.env.VITE_API_BASE_URL/${currentOrg.payment_qr_code}`} alt="Payment QR" className="w-32 h-32 rounded-lg bg-white p-2 border border-slate-700 mb-3 shadow-[0_0_15px_rgba(16,185,129,0.1)]" />
+                <img src={currentOrg.payment_qr_code} alt="Payment QR" className="w-32 h-32 rounded-lg bg-white p-2 border border-slate-700 mb-3 shadow-[0_0_15px_rgba(16,185,129,0.1)]" />
               ) : (
                 <div className="w-32 h-32 rounded-lg bg-[#161f30] flex items-center justify-center mb-3 border border-slate-700">
                   <span className="text-xs text-slate-500">QR Pending</span>
